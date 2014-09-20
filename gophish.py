@@ -165,14 +165,15 @@ for linkonsub in soup.find_all('a', {"onsubmit":True}):
 # Loop through all links found in HTML response, 
 # replace with full links back to phish host
 for link in soup.find_all('a'):
-  if re.search('^javascript\:', link.get('href')) is None:
-    if re.search('^(mailto|http|https|#$)', link.get('href')) is None:
-      if re.search('^\/', link.get('href')):  
-        link['href'] = htype+'://'+domainget+link.get('href')
-      else:
-        link['href'] = phishget+link.get('href')
-  else:
-    link['onclick'] = ''
+  if link.get('href') is not None:
+    if re.search('^javascript\:', link.get('href')) is None:
+      if re.search('^(mailto|http|https|#$)', link.get('href')) is None:
+        if re.search('^\/', link.get('href')):  
+          link['href'] = htype+'://'+domainget+link.get('href')
+        else:
+          link['href'] = phishget+link.get('href')
+    else:
+      link['onclick'] = ''
 
 # Loop through all images found in HTML response, 
 # replace with full link to image on phish host
@@ -187,10 +188,95 @@ for img in soup.find_all('img'):
 # replace with full link to css file on phish host
 for styler in soup.find_all('link'):
   if re.search('^(http|https)', styler.get('href')) is None:
-    if re.search('^\/', styler.get('href')): 
+    if re.search('^\/', styler.get('href')):
+      cssBrowse = str(htype+'://'+domainget+styler.get('href'))
       styler['href'] = htype+'://'+domainget+styler.get('href')
+      try:
+        browseCss = mechanize.Browser()
+        browseCss.open(cssBrowse)
+        csspage = browseCss.response().read()
+        browseCss.close()
+
+        # Rewrite CSS url(), first look for all matches
+        urlCSS = re.findall(r'url\((.*)\)', csspage)
+        addCss = ''
+
+        # Loop through matches and replace
+        for urls in urlCSS:
+          checkQuotes = re.search('(\'|\")', urls)
+          urlValue = ''
+          useQuotes = ''
+
+          # If quotes were used, remove them as part of the string
+          # but add them around the URL
+          if checkQuotes is not None:
+            urlValue = str(urls)[1:-1]
+            useQuotes = '"'
+          else:
+            urlValue = str(urls)
+  
+          # If preceeded by a forward slash, remove make sure we do not double slash
+          if re.search('^\/', urls):
+            addCss = re.sub('url\('+str(urls)+'\)', 'url('+useQuotes+phishget[:-1]+urlValue+useQuotes+')', csspage)
+          else:
+            addCss = re.sub('url\('+str(urls)+'\)', 'url('+useQuotes+phishget+urlValue+useQuotes+')', csspage)
+
+        if re.search('[a-zA-Z0-9]', addCss):
+          # Build style to add to HEAD response
+          addstyle = '<style type="text/css">'+addCss+'</style>'
+          stylesoup = BeautifulSoup(addstyle)
+
+          # Inject the style into the original response
+          for tag in stylesoup.findAll('style'):
+            tag.extract()
+            soup.head.insert(len(soup.head.contents), tag)
+      except:
+        print 'Missed some CSS URLs in : '+cssBrowse
+
     else:
+      cssBrowse = str(phishget+styler.get('href'))
       styler['href'] = phishget+styler.get('href')
+      try:
+        browseCss = mechanize.Browser()
+        browseCss.open(cssBrowse)
+        csspage = browseCss.response().read()
+        browseCss.close()
+
+        # Rewrite CSS url(), first look for all matches
+        urlCSS = re.findall(r'url\((.*)\)', csspage)
+
+        # Loop through matches and replace
+        for urls in urlCSS:
+          checkQuotes = re.search('(\'|\")', urls)
+          urlValue = ''
+          useQuotes = ''
+          addCss = ''
+
+          # If quotes were used, remove them as part of the string
+          # but add them around the URL
+          if checkQuotes is not None:
+            urlValue = str(urls)[1:-1]
+            useQuotes = '"'
+          else:
+            urlValue = str(urls)
+  
+          # If preceeded by a forward slash, remove make sure we do not double slash
+          if re.search('\/', urls):
+            addCss = re.sub('url\('+str(urls)+'\)', 'url('+useQuotes+phishget[:-1]+urlValue+useQuotes+')', csspage)
+          else:
+            addCss = re.sub('url\('+str(urls)+'\)', 'url('+useQuotes+phishget+urlValue+useQuotes+')', csspage)
+
+        if re.search('[a-zA-Z0-9]', addCss):
+          # Build style to add to HEAD response
+          addstyle = '<style type="text/css">'+addCss+'</style>'
+          stylesoup = BeautifulSoup(addstyle)
+
+          # Inject the style into the original response
+          for tag in stylesoup.findAll('style'):
+            tag.extract()
+            soup.head.insert(len(soup.head.contents), tag)
+      except:
+        print 'Missed some CSS URLs in : '+cssBrowse
 
 # Loop through all script tags found in HTML response, 
 # replace with full link to script on phish host
@@ -307,7 +393,7 @@ for urls in urlCSS:
     urlValue = str(urls)
   
   # If preceeded by a forward slash, remove make sure we do not double slash
-  if re.search('\/', urls):
+  if re.search('^\/', urls):
     phishHtml = re.sub('url\('+str(urls)+'\)', 'url('+useQuotes+phishget[:-1]+urlValue+useQuotes+')', phishHtml)
   else:
     phishHtml = re.sub('url\('+str(urls)+'\)', 'url('+useQuotes+phishget+urlValue+useQuotes+')', phishHtml)
