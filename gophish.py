@@ -327,9 +327,9 @@ for urls in urlCSS:
   
   # If preceeded by a forward slash, remove make sure we do not double slash
   if re.search('^\/', urls):
-    phishHtml = re.sub('url\('+str(urls)+'\)', 'url('+useQuotes+phishget[:-1]+urlValue+useQuotes+')', phishHtml)
+    phishHtml = re.sub('url\('+re.escape(str(urls))+'\)', 'url('+useQuotes+phishget[:-1]+urlValue+useQuotes+')', phishHtml)
   else:
-    phishHtml = re.sub('url\('+str(urls)+'\)', 'url('+useQuotes+phishget+urlValue+useQuotes+')', phishHtml)
+    phishHtml = re.sub('url\('+re.escape(str(urls))+'\)', 'url('+useQuotes+phishget+urlValue+useQuotes+')', phishHtml)
 
 # Object for running cherrypy
 class PhishForm(object):
