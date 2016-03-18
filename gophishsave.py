@@ -237,7 +237,7 @@ for urls in urlCSS:
     urlValue = str(urls)
   
   # If preceeded by a forward slash, remove make sure we do not double slash
-  if re.search('^(http|https|//)', urls) is None:
+  if re.search('^(http|https|//)', urls) is not None:
     if re.search('^\/', urls):
       phishHtml = re.sub('url\('+str(urls)+'\)', 'url('+useQuotes+phishget[:-1]+urlValue+useQuotes+')', phishHtml)
     else:
