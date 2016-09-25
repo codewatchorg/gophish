@@ -4,6 +4,7 @@ import sys
 import cherrypy
 import datetime
 import argparse
+import ssl
 from bs4 import BeautifulSoup
 
 # Build argument list for running the script
@@ -26,11 +27,25 @@ parser.add_argument('--autofill',
 	help='file to use to autosubmit autocomplete fields')
 parser.add_argument('--useragent', 
 	help='file to use to pass a user agent value in the request')
+parser.add_argument('--cookie', 
+	help='send a cookie or cookies in the request')
 parser.add_argument('--sendcookies', 
 	action='store_const',
 	const=1,
 	default=1,
 	help='initiate a connection, get the cookies, send cookies back in second connection')
+parser.add_argument('--proxy',
+        default='noproxy',
+        help='access the page to be phished via a proxy')
+parser.add_argument('--proxyport',
+        default='noproxy',
+        help='proxy port')
+parser.add_argument('--proxyuser',
+        default='',
+        help='username for the proxy')
+parser.add_argument('--proxypass',
+        default='',
+        help='password for the proxy')
 parser.set_defaults(logfile='phish.html', sendcookie=0)
 
 # Hold argument values in args
@@ -51,10 +66,40 @@ phishfile = args['outfile']
 redirecte = ''
 redirectr = ''
 clickfiles = dict()
+proxy = args['proxy']
+proxyport = args['proxyport']
+proxyuser = args['proxyuser']
+proxypass = args['proxypass']
+proxycreds = ''
 
 # Create a mechanized browser to connect to the phish target and grab the response
 browse = mechanize.Browser()
 browse.set_handle_robots(False)
+
+# Disable certificate validation, mostly for if using a proxy
+try:
+  _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+  pass
+else:
+  ssl._create_default_https_context = _create_unverified_https_context
+
+# Setup proxy if used
+if re.search('^noproxy', proxy) is None:
+  if re.search('[a-zA-Z0-9]', proxyuser) is not None and re.search('[a-zA-Z0-9]', proxyport) is not None:
+    proxycreds = proxyuser + ':' + proxypass + '@'
+
+  if re.search('^noproxy', proxyport) is None:
+    browse.set_proxies({
+      "http" : proxycreds + proxy + ':' + proxyport,
+      "https" : proxycreds + proxy + ':' + proxyport,})
+  else:
+    browse.set_proxies({
+      "http" : proxycreds + proxy,
+      "https" : proxycreds + proxy,})
+
+  if re.search('[a-zA-Z0-9]', proxyuser) is not None and re.search('[a-zA-Z0-9]', proxyport) is not None:
+    browse.add_proxy_password(proxyuser, proxypass)
 
 # Determine if user agent was set,
 # if so then set argument, otherwise it is empty
@@ -63,6 +108,12 @@ if args['useragent'] is not None:
   uaheader = uafile.readline()
   browse.addheaders = [('User-Agent', uaheader)]
   uafile.close()
+
+# if cookie option was set, then send the cookie in the connection
+if args['cookie'] is not None and args['useragent'] is not None:
+  browse.addheaders.append('Cookie', args['cookie'])
+else:
+  browse.addheaders = [('Cookie', args['cookie'])]
 
 # if sendcookies option was enabled, then connect,
 # grab the cookies, and use them in the second connection
@@ -224,6 +275,9 @@ urlCSS = re.findall(r'url\((.*)\)', phishHtml)
 
 # Loop through matches and replace
 for urls in urlCSS:
+  if re.search('\)', urls):
+    urls = urls.split(')')[0]
+
   checkQuotes = re.search('(\'|\")', urls)
   urlValue = ''
   useQuotes = ''
@@ -244,5 +298,5 @@ for urls in urlCSS:
       phishHtml = re.sub('url\('+str(urls)+'\)', 'url('+useQuotes+phishget+urlValue+useQuotes+')', phishHtml)
 
 phishWrite = open(phishfile, 'w')
-phishWrite.write(phishHtml)
+phishWrite.write(phishHtml.encode('utf-8').strip())
 phishWrite.close()
