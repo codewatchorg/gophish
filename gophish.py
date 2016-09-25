@@ -4,6 +4,7 @@ import sys
 import cherrypy
 import datetime
 import argparse
+import ssl
 from bs4 import BeautifulSoup
 
 # Build argument list for running the script
