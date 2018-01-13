@@ -1,6 +1,7 @@
 import re
 import mechanize
 import sys
+import os
 import cherrypy
 import datetime
 import argparse
@@ -94,6 +95,7 @@ remhttp = phishget.split(':', 1)[1]
 sremhttp = phishhost.split(':', 1)[1]
 domainget = remhttp.split('/', 1)[1].split('/', 1)[1].split('/', 1)[0]
 hostget = sremhttp.split('/', 1)[1].split('/', 1)[1].split('/', 1)[0]
+faviconico = 'favicon.ico'
 cherrylog = args['logfile']
 redirecte = ''
 redirectr = ''
@@ -153,6 +155,16 @@ if args['sendcookies'] == 1:
   cookies = mechanize.LWPCookieJar()
   browse.set_cookiejar(cookies)
   browse.open(phishsource)
+
+# Write out the favicon
+try:
+  browse.open(faviconico)
+  favicodata = browse.response().read()
+  favicofile = open('favicon.ico', 'w')
+  favicofile.write(favicodata)
+  favicofile.close()
+except:
+  pass
 
 browse.open(phishsource)
 phishpage = browse.response().read()
@@ -499,4 +511,4 @@ if args['ssl'] == 1:
 
 # Run cherrypy on the specified port or the default if not specified
 cherrypy.server.socket_port = int(args['port'])
-cherrypy.quickstart(PhishForm(), '/', config = { '/favicon.ico' : { 'tools.staticfile.on': False }})
+cherrypy.quickstart(PhishForm(), '/', config = { '/favicon.ico' : { 'tools.staticfile.on': True, 'tools.staticfile.filename': os.getcwd() + '/favicon.ico' }})
