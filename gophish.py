@@ -229,11 +229,12 @@ for link in soup.find_all('a'):
 # Loop through all images found in HTML response, 
 # replace with full link to image on phish host
 for img in soup.find_all('img'):
-  if re.search('^(http|https|//)', img.get('src')) is None:
-    if re.search('^\/', img.get('src')): 
-      img['src'] = htype+'://'+domainget+img.get('src')
-    else:
-      img['src'] = phishget+img.get('src')
+  if img.get('src') is not None:
+    if re.search('^(http|https|//)', img.get('src')) is None:
+      if re.search('^\/', img.get('src')): 
+        img['src'] = htype+'://'+domainget+img.get('src')
+      else:
+        img['src'] = phishget+img.get('src')
 
 # Loop through all style link tags found in HTML response, 
 # replace with full link to css file on phish host
