@@ -146,7 +146,7 @@ if args['useragent'] is not None:
 # if cookie option was set, then send the cookie in the connection
 if args['cookie'] is not None and args['useragent'] is not None:
   browse.addheaders.append('Cookie', args['cookie'])
-else:
+elif args['cookie'] is not None:
   browse.addheaders = [('Cookie', args['cookie'])]
 
 # if sendcookies option was enabled, then connect,
